@@ -16,11 +16,11 @@ class MainAgent:
         2. Generation: Gọi LLM để sinh câu trả lời.
         """
         # Giả lập độ trễ mạng/LLM
-        await asyncio.sleep(0.5) 
+        await asyncio.sleep(0.1) 
         
         # Giả lập dữ liệu trả về
         return {
-            "answer": f"Dựa trên tài liệu hệ thống, tôi xin trả lời câu hỏi '{question}' như sau: [Câu trả lời mẫu].",
+            "answer": f"Dựa trên tài liệu hệ thống, tôi xin trả lời câu hỏi '{question}' như sau: Đây là câu trả lời kỳ vọng.",
             "contexts": [
                 "Đoạn văn bản trích dẫn 1 dùng để trả lời...",
                 "Đoạn văn bản trích dẫn 2 dùng để trả lời..."
@@ -29,7 +29,10 @@ class MainAgent:
                 "model": "gpt-4o-mini",
                 "tokens_used": 150,
                 "sources": ["policy_handbook.pdf"]
-            }
+            },
+            # Trả về mock retrieved_ids. Trong thực tế, ID này đến từ VectorDB.
+            # Trả về doc_01 để cố tình có hit_rate tốt cho việc test logic eval.
+            "retrieved_ids": ["doc_01", "doc_02", "doc_03"]
         }
 
 if __name__ == "__main__":
@@ -38,3 +41,4 @@ if __name__ == "__main__":
         resp = await agent.query("Làm thế nào để đổi mật khẩu?")
         print(resp)
     asyncio.run(test())
+

@@ -1,7 +1,6 @@
 import asyncio
 import time
 from typing import List, Dict
-# Import other components...
 
 class BenchmarkRunner:
     def __init__(self, agent, evaluator, judge):
@@ -16,21 +15,18 @@ class BenchmarkRunner:
         response = await self.agent.query(test_case["question"])
         latency = time.perf_counter() - start_time
         
-        # 2. Chạy RAGAS metrics
-        ragas_scores = await self.evaluator.score(test_case, response)
-        
-        # 3. Chạy Multi-Judge
+        # 2. Chạy Multi-Judge
         judge_result = await self.judge.evaluate_multi_judge(
             test_case["question"], 
             response["answer"], 
-            test_case["expected_answer"]
+            test_case.get("expected_answer", "")
         )
         
         return {
-            "test_case": test_case["question"],
+            "test_case": test_case.get("question", ""),
             "agent_response": response["answer"],
+            "retrieved_ids": response.get("retrieved_ids", []),
             "latency": latency,
-            "ragas": ragas_scores,
             "judge": judge_result,
             "status": "fail" if judge_result["final_score"] < 3 else "pass"
         }
@@ -45,4 +41,18 @@ class BenchmarkRunner:
             tasks = [self.run_single_test(case) for case in batch]
             batch_results = await asyncio.gather(*tasks)
             results.extend(batch_results)
+            
+        # 3. Chạy Retrieval Eval theo batch sau khi có đủ response từ Agent
+        retrieval_eval_scores = await self.evaluator.evaluate_batch(dataset, results)
+        
+        # Inject retrieval scores into results for summary calculation
+        for r in results:
+            r["ragas"] = {
+                "retrieval": {
+                    "hit_rate": retrieval_eval_scores["avg_hit_rate"],
+                    "mrr": retrieval_eval_scores["avg_mrr"]
+                }
+            }
+            
         return results
+
